@@ -20,22 +20,21 @@ namespace DatAnalyzer
 
     public class MainForm : Form
     {
-        // 상단 파일 제어 컨트롤
         private Button btnOpenFile;
         private TextBox txtFilePath;
         private TextBox txtCustomMessage;
         private Button btnCreateCustomDat;
 
-        // 메인 탭 컨트롤
         private TabControl tabControl;
         private TabPage tabTextAnalyze;
         private TabPage tabBinaryAnalyze;
         
-        // 탭 1: 텍스트 및 난독화 해독 영역
+        // 탭 1 컨트롤 (버튼 2개로 분리)
         private TextBox txtTextResult;
-        private Button btnStartTextDecrypt;
+        private Button btnStartEncodingCheck; // 단순 인코딩 확인 버튼
+        private Button btnStartXorDecrypt;    // XOR 해독 시도 버튼
 
-        // 탭 2: 순수 숫자 데이터 추출 영역
+        // 탭 2 컨트롤
         private TextBox txtBinaryResult;
         private ComboBox cmbByteGroup;
         private Button btnStartBinaryExtract;
@@ -44,11 +43,10 @@ namespace DatAnalyzer
 
         public MainForm()
         {
-            // 공적인 자리에 적합한 단정하고 표준적인 타이틀 명명
-            this.Text = "DAT 파일 데이터 구조 분석 및 복원 시스템 (v1.0)";
-            this.Size = new Size(900, 680);
+            this.Text = "DAT 파일 데이터 구조 분석 및 복원 시스템 (v1.1)";
+            this.Size = new Size(920, 680);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.BackColor = Color.FromArgb(245, 245, 245); // 차분한 기업형 배경색
+            this.BackColor = Color.FromArgb(245, 245, 245);
 
             InitializeControls();
         }
@@ -58,7 +56,7 @@ namespace DatAnalyzer
             Font standardFont = new Font("맑은 고딕", 9F, FontStyle.Regular);
             Font boldFont = new Font("맑은 고딕", 9F, FontStyle.Bold);
 
-            // 1. 상단: 파일 선택 영역
+            // 1. 상단 파일 선택
             Label lblFile = new Label();
             lblFile.Text = "대상 파일 경로:";
             lblFile.Location = new Point(20, 22);
@@ -67,13 +65,13 @@ namespace DatAnalyzer
 
             txtFilePath = new TextBox();
             txtFilePath.Location = new Point(115, 19);
-            txtFilePath.Size = new Size(620, 25);
+            txtFilePath.Size = new Size(640, 25);
             txtFilePath.Font = standardFont;
             txtFilePath.ReadOnly = true;
 
             btnOpenFile = new Button();
             btnOpenFile.Text = "파일 열기";
-            btnOpenFile.Location = new Point(745, 17);
+            btnOpenFile.Location = new Point(765, 17);
             btnOpenFile.Size = new Size(110, 28);
             btnOpenFile.Font = standardFont;
             btnOpenFile.Click += new EventHandler(BtnOpenFile_Click);
@@ -82,11 +80,11 @@ namespace DatAnalyzer
             this.Controls.Add(txtFilePath);
             this.Controls.Add(btnOpenFile);
 
-            // 2. 상단: 테스트 데이터 생성 영역 (깔끔한 그레이톤 프레임)
+            // 2. 상단 테스트 데이터 생성기
             GroupBox grpCreate = new GroupBox();
             grpCreate.Text = " 테스트 데이터 파일 생성 (검증용) ";
             grpCreate.Location = new Point(20, 55);
-            grpCreate.Size = new Size(835, 65);
+            grpCreate.Size = new Size(855, 65);
             grpCreate.Font = boldFont;
             
             Label lblMsg = new Label();
@@ -97,13 +95,13 @@ namespace DatAnalyzer
 
             txtCustomMessage = new TextBox();
             txtCustomMessage.Location = new Point(115, 25);
-            txtCustomMessage.Size = new Size(510, 25);
+            txtCustomMessage.Size = new Size(530, 25);
             txtCustomMessage.Font = standardFont;
             txtCustomMessage.Text = "[DATA] Test 테스트테스트 9991123 21460769 추적번호 ABCD_ @!s?";
 
             btnCreateCustomDat = new Button();
             btnCreateCustomDat.Text = "테스트 DAT 생성";
-            btnCreateCustomDat.Location = new Point(640, 23);
+            btnCreateCustomDat.Location = new Point(660, 23);
             btnCreateCustomDat.Size = new Size(175, 28);
             btnCreateCustomDat.Font = standardFont;
             btnCreateCustomDat.Click += new EventHandler(BtnCreateCustomDat_Click);
@@ -113,10 +111,10 @@ namespace DatAnalyzer
             grpCreate.Controls.Add(btnCreateCustomDat);
             this.Controls.Add(grpCreate);
 
-            // 3. 메인 기능 탭 컨트롤 레이아웃
+            // 3. 메인 기능 탭
             tabControl = new TabControl();
             tabControl.Location = new Point(20, 135);
-            tabControl.Size = new Size(835, 480);
+            tabControl.Size = new Size(855, 480);
             tabControl.Font = standardFont;
 
             tabTextAnalyze = new TabPage();
@@ -130,30 +128,39 @@ namespace DatAnalyzer
             this.Controls.Add(tabControl);
 
             // ==========================================
-            // [기능 탭 1] 텍스트 복원 및 해독 디자인 (단순 인코딩 + XOR 전수조사 통합)
+            // [기능 탭 1] 두 개의 분석 버튼 독립 배치
             // ==========================================
-            btnStartTextDecrypt = new Button();
-            btnStartTextDecrypt.Text = "데이터 해독 시도";
-            btnStartTextDecrypt.Location = new Point(15, 15);
-            btnStartTextDecrypt.Size = new Size(180, 30);
-            btnStartTextDecrypt.Font = boldFont;
-            btnStartTextDecrypt.Enabled = false;
-            btnStartTextDecrypt.Click += new EventHandler(btnStartTextDecrypt_Click);
+            btnStartEncodingCheck = new Button();
+            btnStartEncodingCheck.Text = "단순 인코딩 확인";
+            btnStartEncodingCheck.Location = new Point(15, 15);
+            btnStartEncodingCheck.Size = new Size(160, 30);
+            btnStartEncodingCheck.Font = boldFont;
+            btnStartEncodingCheck.Enabled = false;
+            btnStartEncodingCheck.Click += new EventHandler(btnStartEncodingCheck_Click);
+
+            btnStartXorDecrypt = new Button();
+            btnStartXorDecrypt.Text = "XOR 해독 시도";
+            btnStartXorDecrypt.Location = new Point(185, 15);
+            btnStartXorDecrypt.Size = new Size(160, 30);
+            btnStartXorDecrypt.Font = boldFont;
+            btnStartXorDecrypt.Enabled = false;
+            btnStartXorDecrypt.Click += new EventHandler(btnStartXorDecrypt_Click);
 
             txtTextResult = new TextBox();
             txtTextResult.Location = new Point(15, 55);
-            txtTextResult.Size = new Size(800, 390);
+            txtTextResult.Size = new Size(820, 390);
             txtTextResult.Multiline = true;
             txtTextResult.ScrollBars = ScrollBars.Vertical;
             txtTextResult.Font = new Font("Consolas", 10F, FontStyle.Regular);
             txtTextResult.BackColor = Color.White;
             txtTextResult.ReadOnly = true;
 
-            tabTextAnalyze.Controls.Add(btnStartTextDecrypt);
+            tabTextAnalyze.Controls.Add(btnStartEncodingCheck);
+            tabTextAnalyze.Controls.Add(btnStartXorDecrypt);
             tabTextAnalyze.Controls.Add(txtTextResult);
 
             // ==========================================
-            // [기능 탭 2] 순수 숫자 데이터 추출 디자인 (바이너리 해독 시스템)
+            // [기능 탭 2] 순수 숫자 데이터 추출 영역
             // ==========================================
             Label lblGroup = new Label();
             lblGroup.Text = "데이터 분석 단위:";
@@ -173,7 +180,7 @@ namespace DatAnalyzer
                 "4바이트 실수 (Float/Single)", 
                 "8바이트 실수 (Double)" 
             });
-            cmbByteGroup.SelectedIndex = 2; // 기본 4바이트 정수
+            cmbByteGroup.SelectedIndex = 2;
 
             btnStartBinaryExtract = new Button();
             btnStartBinaryExtract.Text = "숫자 데이터 추출 및 해독";
@@ -185,7 +192,7 @@ namespace DatAnalyzer
 
             txtBinaryResult = new TextBox();
             txtBinaryResult.Location = new Point(15, 55);
-            txtBinaryResult.Size = new Size(800, 390);
+            txtBinaryResult.Size = new Size(820, 390);
             txtBinaryResult.Multiline = true;
             txtBinaryResult.ScrollBars = ScrollBars.Vertical;
             txtBinaryResult.Font = new Font("Consolas", 10F, FontStyle.Regular);
@@ -211,7 +218,8 @@ namespace DatAnalyzer
                         txtFilePath.Text = openFileDialog.FileName;
                         fileBytes = File.ReadAllBytes(openFileDialog.FileName);
 
-                        btnStartTextDecrypt.Enabled = true;
+                        btnStartEncodingCheck.Enabled = true;
+                        btnStartXorDecrypt.Enabled = true;
                         btnStartBinaryExtract.Enabled = true;
                         
                         txtTextResult.Clear();
@@ -236,7 +244,7 @@ namespace DatAnalyzer
                 {
                     byte[] userTextBytes = Encoding.GetEncoding(949).GetBytes(txtCustomMessage.Text);
                     
-                    // 분석 테스트를 위해 0x5A 키로 임의 훼손(XOR 난독화) 적용하여 저장
+                    // 분석 검증용 0x5A 키 고정 암호화 주입
                     byte xorKey = 0x5A; 
                     for (int i = 0; i < userTextBytes.Length; i++)
                     {
@@ -253,76 +261,80 @@ namespace DatAnalyzer
         }
 
         // ==========================================
-        // [개편된 로직 1] 단순 인코딩 확인 및 난독화 해독 통합 수행
+        // [신규 분리 1] 단순 인코딩 확인 전용 로직
         // ==========================================
-        private void btnStartTextDecrypt_Click(object sender, EventArgs e)
+        private void btnStartEncodingCheck_Click(object sender, EventArgs e)
         {
             if (fileBytes == null) return;
 
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine("[텍스트 데이터 해독 시도 보고서]");
-            sb.AppendLine("분석 일시: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            sb.AppendLine("[텍스트 데이터 변환 결과 보고서]");
+            sb.AppendLine("분석 유형: 표준 인코딩 매칭 분석");
             sb.AppendLine("----------------------------------------------------------------------");
 
-            bool textFound = false;
-
-            // 단계 1: 단순 인코딩 문제인지 먼저 점검 (비밀키 0 상태의 정상 변환 확인)
             string[] encNames = { "UTF-8", "CP949 (EUC-KR)", "UTF-16 LE" };
             Encoding[] encs = { Encoding.UTF8, Encoding.GetEncoding(949), Encoding.Unicode };
+            bool anyMatch = false;
 
             for (int i = 0; i < encs.Length; i++)
             {
                 string testDecoded = encs[i].GetString(fileBytes).Replace("\0", "").Trim();
-                if (IsReadableText(testDecoded))
-                {
-                    sb.AppendLine("[검출 성공] 단순 인코딩 변환 매칭 확인");
-                    sb.AppendLine("적용 인코딩: " + encNames[i]);
-                    sb.AppendLine("출력 데이터: " + testDecoded);
-                    sb.AppendLine("----------------------------------------------------------------------");
-                    textFound = true;
-                    break;
-                }
-            }
-
-            // 단계 2: 단순 인코딩으로 안 풀릴 경우, XOR 암호화 전수 대조 실행
-            if (!textFound)
-            {
-                for (int key = 1; key <= 255; key++) // 0은 위에서 검사했으므로 1부터 진행
-                {
-                    byte[] tempBytes = new byte[fileBytes.Length];
-                    Array.Copy(fileBytes, tempBytes, fileBytes.Length);
-
-                    for (int i = 0; i < tempBytes.Length; i++)
-                    {
-                        tempBytes[i] = (byte)(tempBytes[i] ^ key);
-                    }
-
-                    string decodedStr = Encoding.GetEncoding(949).GetString(tempBytes).Replace("\0", "").Trim();
-
-                    if (IsReadableText(decodedStr))
-                    {
-                        sb.AppendLine("[해독 성공] 암호화 데이터 복원 완료");
-                        sb.AppendLine("매칭된 비밀키 (XOR Key): 0x" + key.ToString("X2") + " (10진수: " + key + ")");
-                        sb.AppendLine("출력 데이터: " + decodedStr);
-                        sb.AppendLine("----------------------------------------------------------------------");
-                        textFound = true;
-                        break; // 가장 유효한 키 하나만 잡히면 즉시 정지하여 불필요한 외계어 출력 방지
-                    }
-                }
-            }
-
-            if (!textFound)
-            {
-                sb.AppendLine("[분석 결과] 텍스트 유형의 문자열 데이터를 검출하지 못했습니다.");
-                sb.AppendLine("이 파일은 텍스트 정보가 배제된 순수 수치 포맷 바이너리 파일일 수 있습니다.");
+                
+                sb.AppendLine("적용 인코딩: " + encNames[i]);
+                sb.AppendLine("출력 데이터: " + testDecoded);
+                sb.AppendLine("----------------------------------------------------------------------");
+                anyMatch = true;
             }
 
             txtTextResult.Text = sb.ToString();
         }
 
         // ==========================================
-        // [개편된 로직 2] 순수 숫자로만 되어있는 구간 파싱 및 정밀 정제 해독
+        // [신규 분리 2] XOR 암호화 해독 시도 전용 로직 (출력 간소화)
         // ==========================================
+        private void btnStartXorDecrypt_Click(object sender, EventArgs e)
+        {
+            if (fileBytes == null) return;
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("[바이너리 암호화 해독 결과 보고서]");
+            sb.AppendLine("분석 유형: 0~255 무차별 대입 복호화 (XOR Brute Force)");
+            sb.AppendLine("----------------------------------------------------------------------");
+
+            bool success = false;
+
+            for (int key = 1; key <= 255; key++)
+            {
+                byte[] tempBytes = new byte[fileBytes.Length];
+                Array.Copy(fileBytes, tempBytes, fileBytes.Length);
+
+                for (int i = 0; i < tempBytes.Length; i++)
+                {
+                    tempBytes[i] = (byte)(tempBytes[i] ^ key);
+                }
+
+                // 한국어 윈도우 표준 환경 기반으로 복구 테스트
+                string decodedStr = Encoding.GetEncoding(949).GetString(tempBytes).Replace("\0", "").Trim();
+
+                if (IsReadableText(decodedStr))
+                {
+                    // 불필요한 수식어를 제거하고 간결하게 텍스트(매칭된 비밀키) 형태로 표기
+                    sb.AppendLine(string.Format("복원 텍스트 (매칭 비밀키: 0x{0:X2} / 10진수: {1})", key, key));
+                    sb.AppendLine("출력 데이터: " + decodedStr);
+                    sb.AppendLine("----------------------------------------------------------------------");
+                    success = true;
+                    break; // 유효 문장이 나타나면 즉시 중단하여 불필요한 깨진 문자열 배제
+                }
+            }
+
+            if (!success)
+            {
+                sb.AppendLine("[결과 보고] 파일의 데이터셋 구조와 일치하는 암호화 키를 발견하지 못했습니다.");
+            }
+
+            txtTextResult.Text = sb.ToString();
+        }
+
         private void btnStartBinaryExtract_Click(object sender, EventArgs e)
         {
             if (fileBytes == null) return;
@@ -361,7 +373,6 @@ namespace DatAnalyzer
                 else if (typeChoice == 3) numericValue = BitConverter.ToSingle(fileBytes, i);
                 else if (typeChoice == 4) numericValue = BitConverter.ToDouble(fileBytes, i);
 
-                // 유효 필터링 처리 (텍스트가 깨져 나오는 마이너스 불량값 및 의미 없는 0 패딩 생략)
                 if (numericValue < 0 || numericValue == 0) continue;
 
                 sb.AppendLine(i + "\t\t\t|\t" + hex.Trim() + "\t|\t" + numericValue);
@@ -376,7 +387,6 @@ namespace DatAnalyzer
             txtBinaryResult.Text = sb.ToString();
         }
 
-        // 유 의미한 정상 문장인지 점수 검증하는 내부 모듈
         private bool IsReadableText(string input)
         {
             if (string.IsNullOrEmpty(input)) return false;
@@ -384,13 +394,11 @@ namespace DatAnalyzer
             int validChars = 0;
             foreach (char c in input)
             {
-                // 한글 영역, 영문 대소문자, 숫자, 제어 대괄호, 공백 등 정상 데이터셋 체크
                 if ((c >= 0xAC00 && c <= 0xD7A3) || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == ' ' || c == '[' || c == ']' || c == '?' || c == '@' || c == '!')
                 {
                     validChars++;
                 }
             }
-            // 가독성 있는 글자 수가 최소 8자 이상 매칭될 때만 유효 텍스트로 인정
             return validChars > 8;
         }
     }
