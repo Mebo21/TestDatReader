@@ -289,51 +289,44 @@ namespace DatAnalyzer
             txtTextResult.Text = sb.ToString();
         }
 
-        // ==========================================
-        // [신규 분리 2] XOR 암호화 해독 시도 전용 로직 (출력 간소화)
-        // ==========================================
-        private void btnStartXorDecrypt_Click(object sender, EventArgs e)
+       // ==========================================
+// [수정] 필터링을 제거하고 0~255 전수조사 결과를 무조건 출력하는 로직
+// ==========================================
+    private void btnStartXorDecrypt_Click(object sender, EventArgs e)
+    {
+        if (fileBytes == null) return;
+
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("[바이너리 암호화 해독 결과 보고서]");
+        sb.AppendLine("분석 유형: 0~255 무차별 대입 복호화 (XOR Brute Force) - 전수 조사");
+        sb.AppendLine("----------------------------------------------------------------------");
+
+        // 0부터 255까지 필터링 없이 무조건 전부 루프를 돌며 출력합니다.
+        for (int key = 0; key <= 255; key++)
         {
-            if (fileBytes == null) return;
+            byte[] tempBytes = new byte[fileBytes.Length];
+            Array.Copy(fileBytes, tempBytes, fileBytes.Length);
 
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine("[바이너리 암호화 해독 결과 보고서]");
-            sb.AppendLine("분석 유형: 0~255 무차별 대입 복호화 (XOR Brute Force)");
+            // XOR 비트 연산 수행
+            for (int i = 0; i < tempBytes.Length; i++)
+            {
+                tempBytes[i] = (byte)(tempBytes[i] ^ key);
+            }
+
+            // 한국어 완성형(CP949) 기준으로 문자열 변환
+            string decodedStr = Encoding.GetEncoding(949).GetString(tempBytes).Replace("\0", " ").Trim();
+
+            // 줄바꿈이나 제어문자가 섞여서 보고서 양식이 깨지는 것을 방지하기 위해 정돈
+            decodedStr = decodedStr.Replace("\r", " ").Replace("\n", " ");
+
+            // 주석이나 미사여구 없이 지시하신 단정한 포맷으로 전수 출력
+            sb.AppendLine(string.Format("복원 텍스트 (매칭 비밀키: 0x{0:X2} / 10진수: {1})", key, key));
+            sb.AppendLine("출력 데이터: " + decodedStr);
             sb.AppendLine("----------------------------------------------------------------------");
-
-            bool success = false;
-
-            for (int key = 1; key <= 255; key++)
-            {
-                byte[] tempBytes = new byte[fileBytes.Length];
-                Array.Copy(fileBytes, tempBytes, fileBytes.Length);
-
-                for (int i = 0; i < tempBytes.Length; i++)
-                {
-                    tempBytes[i] = (byte)(tempBytes[i] ^ key);
-                }
-
-                // 한국어 윈도우 표준 환경 기반으로 복구 테스트
-                string decodedStr = Encoding.GetEncoding(949).GetString(tempBytes).Replace("\0", "").Trim();
-
-                if (IsReadableText(decodedStr))
-                {
-                    // 불필요한 수식어를 제거하고 간결하게 텍스트(매칭된 비밀키) 형태로 표기
-                    sb.AppendLine(string.Format("복원 텍스트 (매칭 비밀키: 0x{0:X2} / 10진수: {1})", key, key));
-                    sb.AppendLine("출력 데이터: " + decodedStr);
-                    sb.AppendLine("----------------------------------------------------------------------");
-                    success = true;
-                    break; // 유효 문장이 나타나면 즉시 중단하여 불필요한 깨진 문자열 배제
-                }
-            }
-
-            if (!success)
-            {
-                sb.AppendLine("[결과 보고] 파일의 데이터셋 구조와 일치하는 암호화 키를 발견하지 못했습니다.");
-            }
-
-            txtTextResult.Text = sb.ToString();
         }
+
+        txtTextResult.Text = sb.ToString();
+    }
 
         private void btnStartBinaryExtract_Click(object sender, EventArgs e)
         {
