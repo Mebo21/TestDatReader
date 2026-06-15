@@ -192,19 +192,30 @@ namespace DatAnalyzer
                 using (FileStream fs = new FileStream(customPath, FileMode.Create, FileAccess.Write))
                 using (BinaryWriter bw = new BinaryWriter(fs))
                 {
-                    // 1. 입력받은 메시지를 구형 한국어 인코딩(CP949/EUC-KR) 규칙으로 구워줍니다.
-                    // (일반 편집기에서 열면 무조건 깨진 한자가 나옵니다.)
+                    // 1. 입력받은 메시지를 바이트 배열로 변환
                     byte[] userTextBytes = Encoding.GetEncoding(949).GetBytes(txtCustomMessage.Text);
+
+                    // 🔥 [핵심 난독화] 데이터를 가리 기 위한 암호화 키 (원하는 바이트 아무거나 가능)
+                    byte xorKey = 0x5A; 
+
+                    // 바이트 배열을 하나씩 돌면서 암호화 연산을 수행합니다.
+                    // 이렇게 하면 데이터 값이 완전히 변해서 메모장이 복원을 못 합니다.
+                    for (int i = 0; i < userTextBytes.Length; i++)
+                    {
+                        userTextBytes[i] = (byte)(userTextBytes[i] ^ xorKey);
+                    }
+
+                    // 암호화되어 완전히 깨진 바이트를 파일에 씁니다.
                     bw.Write(userTextBytes);
 
-                    // 2. 뒤에는 변하지 않는 고정 숫자 데이터셋 주입 (999)
+                    // 2. 뒤에는 기존처럼 고정 숫자 주입 (999) - 숫자도 숨기고 싶다면 똑같이 XOR 가능
                     for (int i = 0; i < 5; i++) bw.Write(999);
                     
                     // 3. 끝단 패딩용 0 주입
                     bw.Write((long)0);
                 }
 
-                MessageBox.Show("입력하신 메시지로 'custom_test.dat' 파일이 정상 생성되었습니다!\n\n상단의 [파일 열기] 버튼을 눌러 생성된 파일을 불러오세요.", "생성 성공");
+                MessageBox.Show("XOR 암호화가 적용된 'custom_test.dat' 파일이 생성되었습니다!\n\n이제 이 파일을 메모장으로 열어보세요. 완전히 깨져있을 겁니다.", "생성 성공");
             }
             catch (Exception ex) 
             { 
