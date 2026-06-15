@@ -1,0 +1,31 @@
+name: Build DTobserver for Windows 32-bit
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: 1. 코드 가져오기
+        uses: actions/checkout@v5
+
+      - name: 2. 32비트로 컴파일
+        run: |
+          if exist obj rmdir /s /q obj
+          C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe ^
+          /platform:x86 ^
+          /target:winexe ^
+          /out:DTobserver.exe ^
+          /recurse:*.cs
+        shell: cmd
+
+      - name: 3. exe 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: DTobserver-Windows32-Executable
+          path: DTobserver.exe
+          if-no-files-found: error # 파일이 없으면 빌드 실패 처리
