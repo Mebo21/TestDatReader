@@ -3,14 +3,12 @@ using System.IO;
 using System.Text;
 using System.Windows.Forms;
 using System.Drawing;
+using System.Collections.Generic;
 
 namespace DatAnalyzer
 {
     static class Program
     {
-        /// <summary>
-        /// 해당 애플리케이션의 주 진입점입니다.
-        /// </summary>
         [STAThread]
         static void Main()
         {
@@ -22,31 +20,34 @@ namespace DatAnalyzer
 
     public class MainForm : Form
     {
-        // UI 컨트롤 선언
+        // 파일 로드 및 상단 컨트롤
         private Button btnOpenFile;
         private TextBox txtFilePath;
+        
+        // [추가] 커스텀 DAT 생성 컨트롤 영역
+        private TextBox txtCustomMessage;
+        private Button btnCreateCustomDat;
+
+        // 탭 구성
         private TabControl tabControl;
         private TabPage tabBinary;
         private TabPage tabEncoding;
         
-        // 바이너리 탭 컨트롤
+        // 탭 1: 바이너리
         private TextBox txtBinaryResult;
         private ComboBox cmbByteGroup;
         private Button btnAnalyzeBinary;
 
-        // 인코딩 탭 컨트롤
+        // 탭 2: 인코딩
         private TextBox txtEncodingResult;
-        private ComboBox cmbEncodingList;
         private Button btnAnalyzeEncoding;
 
-        // 선택된 파일 데이터 저장 (4.8 버전용 일반 바이트 배열 변수)
         private byte[] fileBytes = null;
 
         public MainForm()
         {
-            // 폼 기본 설정
-            this.Text = ".DAT 파일 분석기 (.NET Framework 4.8 버전)";
-            this.Size = new Size(800, 600);
+            this.Text = ".DAT 파일 맞춤형 텍스트-바이너리 정밀 분석기 (.NET 4.8)";
+            this.Size = new Size(880, 680);
             this.StartPosition = FormStartPosition.CenterScreen;
 
             InitializeControls();
@@ -54,20 +55,20 @@ namespace DatAnalyzer
 
         private void InitializeControls()
         {
-            // 1. 상단 파일 선택 영역
+            // 1. 상단 라인: 파일 열기 영역
             Label lblFile = new Label();
-            lblFile.Text = "파일 경로:";
+            lblFile.Text = "대상 파일:";
             lblFile.Location = new Point(15, 20);
-            lblFile.Size = new Size(70, 25);
+            lblFile.Size = new Size(65, 25);
 
             txtFilePath = new TextBox();
-            txtFilePath.Location = new Point(90, 17);
-            txtFilePath.Size = new Size(560, 25);
+            txtFilePath.Location = new Point(85, 17);
+            txtFilePath.Size = new Size(640, 25);
             txtFilePath.ReadOnly = true;
 
             btnOpenFile = new Button();
             btnOpenFile.Text = "파일 열기";
-            btnOpenFile.Location = new Point(660, 15);
+            btnOpenFile.Location = new Point(740, 15);
             btnOpenFile.Size = new Size(100, 30);
             btnOpenFile.Click += new EventHandler(BtnOpenFile_Click);
 
@@ -75,52 +76,79 @@ namespace DatAnalyzer
             this.Controls.Add(txtFilePath);
             this.Controls.Add(btnOpenFile);
 
-            // 2. 탭 컨트롤 구성 (두 가지 케이스 테스트용)
+            // 2. [신규 추가] 두 번째 라인: 내가 적는 메세지로 DAT 만들기 그룹 박스
+            GroupBox grpCreate = new GroupBox();
+            grpCreate.Text = " 커스텀 테스트 DAT 파일 생성기 ";
+            grpCreate.Location = new Point(15, 55);
+            grpCreate.Size = new Size(825, 65);
+            
+            Label lblMsg = new Label();
+            lblMsg.Text = "숨길 메시지 입력:";
+            lblMsg.Location = new Point(15, 28);
+            lblMsg.Size = new Size(110, 25);
+
+            txtCustomMessage = new TextBox();
+            txtCustomMessage.Location = new Point(130, 25);
+            txtCustomMessage.Size = new Size(500, 25);
+            txtCustomMessage.Text = "내가 직접 입력한 비밀 메시지입니다! 심지어 숫자 999도 숨어있지롱";
+
+            btnCreateCustomDat = new Button();
+            btnCreateCustomDat.Text = "이 메세지로 DAT 굽기";
+            btnCreateCustomDat.Location = new Point(645, 22);
+            btnCreateCustomDat.Size = new Size(165, 30);
+            btnCreateCustomDat.BackColor = Color.LightYellow;
+            btnCreateCustomDat.Font = new Font(this.Font, FontStyle.Bold);
+            btnCreateCustomDat.Click += new EventHandler(BtnCreateCustomDat_Click);
+
+            grpCreate.Controls.Add(lblMsg);
+            grpCreate.Controls.Add(txtCustomMessage);
+            grpCreate.Controls.Add(btnCreateCustomDat);
+            this.Controls.Add(grpCreate);
+
+            // 3. 탭 컨트롤 레이아웃 (위치 조정)
             tabControl = new TabControl();
-            tabControl.Location = new Point(15, 60);
-            tabControl.Size = new Size(750, 480);
+            tabControl.Location = new Point(15, 135);
+            tabControl.Size = new Size(825, 480);
 
             tabBinary = new TabPage();
-            tabBinary.Text = "케이스 1: 숫자/바이너리 분석";
+            tabBinary.Text = "[필터링] 알맹이 숫자 데이터만 추출";
 
             tabEncoding = new TabPage();
-            tabEncoding.Text = "케이스 2: 한자 깨짐/인코딩 변환";
+            tabEncoding.Text = "[교차대조] 모든 인코딩 완벽 한눈에 비교";
 
             tabControl.TabPages.Add(tabBinary);
             tabControl.TabPages.Add(tabEncoding);
             this.Controls.Add(tabControl);
 
-            // ==========================================
-            // [탭 1] 바이너리 분석 UI 구성
-            // ==========================================
+            // [탭 1] 바이너리
             Label lblGroup = new Label();
-            lblGroup.Text = "데이터 단위:";
+            lblGroup.Text = "데이터 단위 정밀 선택:";
             lblGroup.Location = new Point(15, 20);
-            lblGroup.Size = new Size(80, 25);
+            lblGroup.Size = new Size(140, 25);
 
             cmbByteGroup = new ComboBox();
-            cmbByteGroup.Location = new Point(100, 17);
-            cmbByteGroup.Size = new Size(150, 25);
+            cmbByteGroup.Location = new Point(160, 17);
+            cmbByteGroup.Size = new Size(180, 25);
             cmbByteGroup.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbByteGroup.Items.AddRange(new object[] { 
-                "1바이트 (Byte)", 
+                "1바이트 정수 (Byte)", 
                 "2바이트 정수 (Int16)", 
                 "4바이트 정수 (Int32)", 
-                "4바이트 실수 (Single/Float)", 
+                "4바이트 실수 (Float/Single)", 
                 "8바이트 실수 (Double)" 
             });
-            cmbByteGroup.SelectedIndex = 2; // 기본값 Int32
+            cmbByteGroup.SelectedIndex = 2;
 
             btnAnalyzeBinary = new Button();
-            btnAnalyzeBinary.Text = "분석 실행";
-            btnAnalyzeBinary.Location = new Point(260, 15);
-            btnAnalyzeBinary.Size = new Size(100, 30);
+            btnAnalyzeBinary.Text = "유령값 청소하고 데이터만 발려내기";
+            btnAnalyzeBinary.Location = new Point(350, 15);
+            btnAnalyzeBinary.Size = new Size(240, 30);
             btnAnalyzeBinary.Enabled = false;
             btnAnalyzeBinary.Click += new EventHandler(BtnAnalyzeBinary_Click);
 
             txtBinaryResult = new TextBox();
             txtBinaryResult.Location = new Point(15, 60);
-            txtBinaryResult.Size = new Size(710, 370);
+            txtBinaryResult.Size = new Size(790, 380);
             txtBinaryResult.Multiline = true;
             txtBinaryResult.ScrollBars = ScrollBars.Vertical;
             txtBinaryResult.Font = new Font("Consolas", 10);
@@ -130,53 +158,65 @@ namespace DatAnalyzer
             tabBinary.Controls.Add(btnAnalyzeBinary);
             tabBinary.Controls.Add(txtBinaryResult);
 
-            // ==========================================
-            // [탭 2] 인코딩 변환 UI 구성
-            // ==========================================
-            Label lblEnc = new Label();
-            lblEnc.Text = "인코딩 선택:";
-            lblEnc.Location = new Point(15, 20);
-            lblEnc.Size = new Size(80, 25);
-
-            cmbEncodingList = new ComboBox();
-            cmbEncodingList.Location = new Point(100, 17);
-            cmbEncodingList.Size = new Size(200, 25);
-            cmbEncodingList.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbEncodingList.Items.AddRange(new object[] { 
-                "모든 인코딩 한 번에 비교", 
-                "UTF-8", 
-                "UTF-16 LE (Unicode)", 
-                "UTF-16 BE", 
-                "EUC-KR (옛날 한글 완성형)", 
-                "ASCII" 
-            });
-            cmbEncodingList.SelectedIndex = 0;
-
+            // [탭 2] 인코딩
             btnAnalyzeEncoding = new Button();
-            btnAnalyzeEncoding.Text = "변환 실행";
-            btnAnalyzeEncoding.Location = new Point(310, 15);
-            btnAnalyzeEncoding.Size = new Size(100, 30);
+            btnAnalyzeEncoding.Text = "국가별 전체 인코딩 실시간 동시 변환 실행";
+            btnAnalyzeEncoding.Location = new Point(15, 15);
+            btnAnalyzeEncoding.Size = new Size(320, 30);
             btnAnalyzeEncoding.Enabled = false;
             btnAnalyzeEncoding.Click += new EventHandler(BtnAnalyzeEncoding_Click);
 
             txtEncodingResult = new TextBox();
             txtEncodingResult.Location = new Point(15, 60);
-            txtEncodingResult.Size = new Size(710, 370);
+            txtEncodingResult.Size = new Size(790, 380);
             txtEncodingResult.Multiline = true;
             txtEncodingResult.ScrollBars = ScrollBars.Vertical;
             txtEncodingResult.Font = new Font("맑은 고딕", 10);
 
-            tabEncoding.Controls.Add(lblEnc);
-            tabEncoding.Controls.Add(cmbEncodingList);
             tabEncoding.Controls.Add(btnAnalyzeEncoding);
             tabEncoding.Controls.Add(txtEncodingResult);
         }
 
-        // 파일 열기 버튼 클릭 이벤트
+        // [구현] 내가 입력한 텍스트 문장으로 바이너리 파일(.dat) 직접 생성하기
+        private void BtnCreateCustomDat_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(txtCustomMessage.Text.Trim()))
+            {
+                MessageBox.Show("메시지를 입력해 주세요!", "경고", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string customPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "custom_test.dat");
+            try
+            {
+                using (FileStream fs = new FileStream(customPath, FileMode.Create, FileAccess.Write))
+                using (BinaryWriter bw = new BinaryWriter(fs))
+                {
+                    // 1. 입력받은 메시지를 구형 한국어 인코딩(CP949/EUC-KR) 규칙으로 구워줍니다.
+                    // (일반 편집기에서 열면 무조건 깨진 한자가 나옵니다.)
+                    byte[] userTextBytes = Encoding.GetEncoding(949).GetBytes(txtCustomMessage.Text);
+                    bw.Write(userTextBytes);
+
+                    // 2. 뒤에는 변하지 않는 고정 숫자 데이터셋 주입 (999)
+                    for (int i = 0; i < 5; i++) bw.Write(999);
+                    
+                    // 3. 끝단 패딩용 0 주입
+                    bw.Write((long)0);
+                }
+
+                MessageBox.Show("입력하신 메시지로 'custom_test.dat' 파일이 정상 생성되었습니다!\n\n상단의 [파일 열기] 버튼을 눌러 생성된 파일을 불러오세요.", "생성 성공");
+            }
+            catch (Exception ex) 
+            { 
+                MessageBox.Show("파일 생성 중 예외 발생: " + ex.Message, "오류"); 
+            }
+        }
+
         private void BtnOpenFile_Click(object sender, EventArgs e)
         {
             using (OpenFileDialog openFileDialog = new OpenFileDialog())
             {
+                openFileDialog.InitialDirectory = AppDomain.CurrentDomain.BaseDirectory;
                 openFileDialog.Filter = "DAT 파일 (*.dat)|*.dat|모든 파일 (*.*)|*.*";
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
@@ -184,29 +224,25 @@ namespace DatAnalyzer
                     {
                         txtFilePath.Text = openFileDialog.FileName;
                         fileBytes = File.ReadAllBytes(openFileDialog.FileName);
-
-                        MessageBox.Show("파일을 성공적으로 로드했습니다.\n크기: " + fileBytes.Length + " 바이트", "알림", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        MessageBox.Show("데이터 수집 완료: " + fileBytes.Length + " 바이트 로드됨", "성공");
 
                         btnAnalyzeBinary.Enabled = true;
                         btnAnalyzeEncoding.Enabled = true;
                     }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("파일을 읽는 중 오류 발생: " + ex.Message, "에러", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
+                    catch (Exception ex) { MessageBox.Show("파일 열기 실패: " + ex.Message); }
                 }
             }
         }
 
-        // 케이스 1: 바이너리 숫자 분석 실행
         private void BtnAnalyzeBinary_Click(object sender, EventArgs e)
         {
             if (fileBytes == null) return;
 
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine("[분석 결과] 총 " + fileBytes.Length + " 바이트");
-            sb.AppendLine("※ 마지막 부분 데이터가 고정되어 있는지 유심히 확인하세요.\n");
-            sb.AppendLine("위치(인덱스)\t|\t16진수(Hex)\t|\t해석된 숫자값");
+            sb.AppendLine("======================================================================");
+            sb.AppendLine(" [정밀 추출 결과] 앞쪽 깨진 문자열 및 의미없는 패딩 0을 제거한 유효 핵심 숫자 목록");
+            sb.AppendLine("======================================================================");
+            sb.AppendLine("데이터 주소\t|\t16진수 바이너리 코드\t|\t정제된 실제 데이터");
             sb.AppendLine("----------------------------------------------------------------------");
 
             int step = 4;
@@ -214,78 +250,86 @@ namespace DatAnalyzer
 
             switch (typeChoice)
             {
-                case 0: step = 1; break; // Byte
-                case 1: step = 2; break; // Int16
-                case 2: step = 4; break; // Int32
-                case 3: step = 4; break; // Single
-                case 4: step = 8; break; // Double
+                case 0: step = 1; break;
+                case 1: step = 2; break;
+                case 2: step = 4; break;
+                case 3: step = 4; break;
+                case 4: step = 8; break;
             }
+
+            int validCount = 0;
 
             for (int i = 0; i <= fileBytes.Length - step; i += step)
             {
                 string hex = "";
-                string valueStr = "";
+                double numericValue = 0;
 
-                // Hex 문자열 생성
                 for (int j = 0; j < step; j++) 
-                {
                     hex += fileBytes[i + j].ToString("X2") + " ";
-                }
 
-                // 데이터 해석 (구형 문법 조건문 구조)
-                if (typeChoice == 0) valueStr = fileBytes[i].ToString();
-                else if (typeChoice == 1) valueStr = BitConverter.ToInt16(fileBytes, i).ToString();
-                else if (typeChoice == 2) valueStr = BitConverter.ToInt32(fileBytes, i).ToString();
-                else if (typeChoice == 3) valueStr = BitConverter.ToSingle(fileBytes, i).ToString();
-                else if (typeChoice == 4) valueStr = BitConverter.ToDouble(fileBytes, i).ToString();
+                if (typeChoice == 0) numericValue = fileBytes[i];
+                else if (typeChoice == 1) numericValue = BitConverter.ToInt16(fileBytes, i);
+                else if (typeChoice == 2) numericValue = BitConverter.ToInt32(fileBytes, i);
+                else if (typeChoice == 3) numericValue = BitConverter.ToSingle(fileBytes, i);
+                else if (typeChoice == 4) numericValue = BitConverter.ToDouble(fileBytes, i);
 
-                sb.AppendLine(i + "\t\t|\t" + hex.Trim() + "\t|\t" + valueStr);
+                // 유령 데이터 거르기 필터링 (텍스트 깨짐으로 인한 비정상 음수 및 패딩 0 필터)
+                if (numericValue < 0 || numericValue == 0) continue;
+
+                sb.AppendLine(i + "\t\t|\t" + hex.Trim() + "\t|\t" + numericValue);
+                validCount++;
+            }
+
+            if (validCount == 0)
+            {
+                sb.AppendLine("\n[필터링 결과 없음] 유효한 데이터를 검출하지 못했습니다.");
+                sb.AppendLine("바이트 선택 단위를 변경하거나 인코딩 교차대조 탭으로 이동하세요.");
             }
 
             txtBinaryResult.Text = sb.ToString();
         }
 
-        // 케이스 2: 인코딩 변환 실행
         private void BtnAnalyzeEncoding_Click(object sender, EventArgs e)
         {
             if (fileBytes == null) return;
 
             StringBuilder sb = new StringBuilder();
-            int choice = cmbEncodingList.SelectedIndex;
+            sb.AppendLine("======================================================================");
+            sb.AppendLine(" [5대 인코딩 완전 대조군 분석] 깨진 한자가 원래 문장으로 돌아오는 형식을 확인하세요.");
+            sb.AppendLine("======================================================================");
 
-            if (choice == 0) // 모두 비교
-            {
-                // .NET 4.8 버전 안전한 Tuple 배열 생성
-                string[] names = { "UTF-8", "UTF-16 LE (Unicode)", "UTF-16 BE", "EUC-KR (옛날 한글)", "ASCII (순수 영문)" };
-                Encoding[] encodings = { 
-                    Encoding.UTF8, 
-                    Encoding.Unicode, 
-                    Encoding.BigEndianUnicode, 
-                    Encoding.GetEncoding("EUC-KR"), 
-                    Encoding.ASCII 
-                };
+            string[] encodingNames = { 
+                "■ 1. UTF-8 (기본 유니코드 표준 인코딩)", 
+                "■ 2. EUC-KR / CP949 (한국어 윈도우 완성형 표준 - 가장 유력)", 
+                "■ 3. UTF-16 Little Endian (일반 유니코드 정규 포맷)", 
+                "■ 4. UTF-16 Big Endian (서버/대형 시스템 통신 규격)", 
+                "■ 5. ASCII (표준 영문 및 공통 제어 기호 영역)" 
+            };
 
-                for (int i = 0; i < names.Length; i++)
-                {
-                    sb.AppendLine("==================================================");
-                    sb.AppendLine("▶ 인코딩 타입: " + names[i]);
-                    sb.AppendLine("==================================================");
-                    sb.AppendLine(encodings[i].GetString(fileBytes));
-                    sb.AppendLine("\n");
-                }
-            }
-            else
+            List<Encoding> encs = new List<Encoding>();
+            encs.Add(Encoding.UTF8);
+            try { encs.Add(Encoding.GetEncoding(949)); } catch { encs.Add(Encoding.GetEncoding("EUC-KR")); }
+            encs.Add(Encoding.Unicode);
+            encs.Add(Encoding.BigEndianUnicode);
+            encs.Add(Encoding.ASCII);
+
+            for (int i = 0; i < encs.Count; i++)
             {
-                Encoding selectedEncoding = Encoding.UTF8;
-                switch (choice)
+                sb.AppendLine("\n----------------------------------------------------------------------");
+                sb.AppendLine(encodingNames[i]);
+                sb.AppendLine("----------------------------------------------------------------------");
+                
+                string decoded = encs[i].GetString(fileBytes);
+                string cleaned = decoded.Replace("\0", "").Trim();
+                
+                if (string.IsNullOrEmpty(cleaned))
                 {
-                    case 1: selectedEncoding = Encoding.UTF8; break;
-                    case 2: selectedEncoding = Encoding.Unicode; break;
-                    case 3: selectedEncoding = Encoding.BigEndianUnicode; break;
-                    case 4: selectedEncoding = Encoding.GetEncoding("EUC-KR"); break;
-                    case 5: selectedEncoding = Encoding.ASCII; break;
+                    sb.AppendLine("[해당 형식으로 텍스트 복원 불가능]");
                 }
-                sb.AppendLine(selectedEncoding.GetString(fileBytes));
+                else
+                {
+                    sb.AppendLine(cleaned);
+                }
             }
 
             txtEncodingResult.Text = sb.ToString();
