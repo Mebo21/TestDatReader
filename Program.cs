@@ -20,25 +20,23 @@ namespace DatAnalyzer
 
     public class MainForm : Form
     {
-        // 파일 로드 및 상단 컨트롤
+        // 상단 파일 및 커스텀 생성 컨트롤
         private Button btnOpenFile;
         private TextBox txtFilePath;
-        
-        // [추가] 커스텀 DAT 생성 컨트롤 영역
         private TextBox txtCustomMessage;
         private Button btnCreateCustomDat;
 
-        // 탭 구성
+        // 탭 컨트롤 및 페이지
         private TabControl tabControl;
         private TabPage tabBinary;
         private TabPage tabEncoding;
         
-        // 탭 1: 바이너리
+        // 탭 1: 바이너리 숫자 추출용
         private TextBox txtBinaryResult;
         private ComboBox cmbByteGroup;
         private Button btnAnalyzeBinary;
 
-        // 탭 2: 인코딩
+        // 탭 2: 난독화 자동 해제 및 인코딩 분석용
         private TextBox txtEncodingResult;
         private Button btnAnalyzeEncoding;
 
@@ -46,7 +44,7 @@ namespace DatAnalyzer
 
         public MainForm()
         {
-            this.Text = ".DAT 파일 맞춤형 텍스트-바이너리 정밀 분석기 (.NET 4.8)";
+            this.Text = ".DAT 난독화 강제 해제 및 데이터 정밀 정제기 (.NET 4.8)";
             this.Size = new Size(880, 680);
             this.StartPosition = FormStartPosition.CenterScreen;
 
@@ -55,7 +53,7 @@ namespace DatAnalyzer
 
         private void InitializeControls()
         {
-            // 1. 상단 라인: 파일 열기 영역
+            // 1. 첫 번째 라인: 파일 로드 레이아웃
             Label lblFile = new Label();
             lblFile.Text = "대상 파일:";
             lblFile.Location = new Point(15, 20);
@@ -76,9 +74,9 @@ namespace DatAnalyzer
             this.Controls.Add(txtFilePath);
             this.Controls.Add(btnOpenFile);
 
-            // 2. [신규 추가] 두 번째 라인: 내가 적는 메세지로 DAT 만들기 그룹 박스
+            // 2. 두 번째 라인: 난독화 테스트용 DAT 생성기 영역
             GroupBox grpCreate = new GroupBox();
-            grpCreate.Text = " 커스텀 테스트 DAT 파일 생성기 ";
+            grpCreate.Text = " 진짜 깨지는 난독화 DAT 파일 생성기 (XOR 암호화 적용) ";
             grpCreate.Location = new Point(15, 55);
             grpCreate.Size = new Size(825, 65);
             
@@ -90,13 +88,14 @@ namespace DatAnalyzer
             txtCustomMessage = new TextBox();
             txtCustomMessage.Location = new Point(130, 25);
             txtCustomMessage.Size = new Size(500, 25);
-            txtCustomMessage.Text = "내가 직접 입력한 비밀 메시지입니다! 심지어 숫자 999도 숨어있지롱";
+            txtCustomMessage.Text = "[DATA] Test 테스트테스트 9991123 21460769 추적번호 ABCD_ @!s?";
 
             btnCreateCustomDat = new Button();
-            btnCreateCustomDat.Text = "이 메세지로 DAT 굽기";
+            btnCreateCustomDat.Text = "암호화 DAT 굽기";
             btnCreateCustomDat.Location = new Point(645, 22);
             btnCreateCustomDat.Size = new Size(165, 30);
-            btnCreateCustomDat.BackColor = Color.LightYellow;
+            btnCreateCustomDat.BackColor = Color.LightCoral;
+            btnCreateCustomDat.ForeColor = Color.White;
             btnCreateCustomDat.Font = new Font(this.Font, FontStyle.Bold);
             btnCreateCustomDat.Click += new EventHandler(BtnCreateCustomDat_Click);
 
@@ -105,22 +104,22 @@ namespace DatAnalyzer
             grpCreate.Controls.Add(btnCreateCustomDat);
             this.Controls.Add(grpCreate);
 
-            // 3. 탭 컨트롤 레이아웃 (위치 조정)
+            // 3. 메인 분석 탭 컨트롤 구성
             tabControl = new TabControl();
             tabControl.Location = new Point(15, 135);
             tabControl.Size = new Size(825, 480);
 
             tabBinary = new TabPage();
-            tabBinary.Text = "[필터링] 알맹이 숫자 데이터만 추출";
+            tabBinary.Text = "[필터링] 바이너리 알맹이 숫자 추출";
 
             tabEncoding = new TabPage();
-            tabEncoding.Text = "[교차대조] 모든 인코딩 완벽 한눈에 비교";
+            tabEncoding.Text = "[해제공격] 난독화 해제 및 문자열 복원";
 
             tabControl.TabPages.Add(tabBinary);
             tabControl.TabPages.Add(tabEncoding);
             this.Controls.Add(tabControl);
 
-            // [탭 1] 바이너리
+            // [탭 1] 바이너리 숫자 추출 상세 디자인
             Label lblGroup = new Label();
             lblGroup.Text = "데이터 단위 정밀 선택:";
             lblGroup.Location = new Point(15, 20);
@@ -137,10 +136,10 @@ namespace DatAnalyzer
                 "4바이트 실수 (Float/Single)", 
                 "8바이트 실수 (Double)" 
             });
-            cmbByteGroup.SelectedIndex = 2;
+            cmbByteGroup.SelectedIndex = 2; // 기본 Int32
 
             btnAnalyzeBinary = new Button();
-            btnAnalyzeBinary.Text = "유령값 청소하고 데이터만 발려내기";
+            btnAnalyzeBinary.Text = "유령값 청소하고 진짜 숫자 데이터만 추출";
             btnAnalyzeBinary.Location = new Point(350, 15);
             btnAnalyzeBinary.Size = new Size(240, 30);
             btnAnalyzeBinary.Enabled = false;
@@ -158,11 +157,13 @@ namespace DatAnalyzer
             tabBinary.Controls.Add(btnAnalyzeBinary);
             tabBinary.Controls.Add(txtBinaryResult);
 
-            // [탭 2] 인코딩
+            // [탭 2] 난독화 강제 해제 공격 디자인
             btnAnalyzeEncoding = new Button();
-            btnAnalyzeEncoding.Text = "국가별 전체 인코딩 실시간 동시 변환 실행";
+            btnAnalyzeEncoding.Text = "★ 0~255 전수조사 난독화 파쇄 및 텍스트 자동 복원 실행 ★";
             btnAnalyzeEncoding.Location = new Point(15, 15);
-            btnAnalyzeEncoding.Size = new Size(320, 30);
+            btnAnalyzeEncoding.Size = new Size(420, 30);
+            btnAnalyzeEncoding.BackColor = Color.LightGreen;
+            btnAnalyzeEncoding.Font = new Font(this.Font, FontStyle.Bold);
             btnAnalyzeEncoding.Enabled = false;
             btnAnalyzeEncoding.Click += new EventHandler(BtnAnalyzeEncoding_Click);
 
@@ -177,7 +178,7 @@ namespace DatAnalyzer
             tabEncoding.Controls.Add(txtEncodingResult);
         }
 
-        // [구현] 내가 입력한 텍스트 문장으로 바이너리 파일(.dat) 직접 생성하기
+        // 1. 진짜로 꼬여서 메모장에서 외계어로 깨지는 암호화 DAT 생성 로직
         private void BtnCreateCustomDat_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(txtCustomMessage.Text.Trim()))
@@ -192,30 +193,28 @@ namespace DatAnalyzer
                 using (FileStream fs = new FileStream(customPath, FileMode.Create, FileAccess.Write))
                 using (BinaryWriter bw = new BinaryWriter(fs))
                 {
-                    // 1. 입력받은 메시지를 바이트 배열로 변환
+                    // 한국어 완성형 바이트 변환
                     byte[] userTextBytes = Encoding.GetEncoding(949).GetBytes(txtCustomMessage.Text);
 
-                    // 🔥 [핵심 난독화] 데이터를 가리 기 위한 암호화 키 (원하는 바이트 아무거나 가능)
+                    // 🔥 [진짜 난독화 주입] 0x5A(비밀 키)로 비트 XOR 연산을 수행하여 바이트 자체를 훼손시킵니다.
+                    // 이렇게 하면 메모장이나 일반 뷰어로 열었을 때 100% 한자나 외계어로 깨집니다.
                     byte xorKey = 0x5A; 
-
-                    // 바이트 배열을 하나씩 돌면서 암호화 연산을 수행합니다.
-                    // 이렇게 하면 데이터 값이 완전히 변해서 메모장이 복원을 못 합니다.
                     for (int i = 0; i < userTextBytes.Length; i++)
                     {
                         userTextBytes[i] = (byte)(userTextBytes[i] ^ xorKey);
                     }
 
-                    // 암호화되어 완전히 깨진 바이트를 파일에 씁니다.
+                    // 난독화된 바이트 쓰기
                     bw.Write(userTextBytes);
 
-                    // 2. 뒤에는 기존처럼 고정 숫자 주입 (999) - 숫자도 숨기고 싶다면 똑같이 XOR 가능
+                    // 데이터 영역 뒤에 숨겨진 진짜 규칙 숫자 주입 (999)
                     for (int i = 0; i < 5; i++) bw.Write(999);
                     
-                    // 3. 끝단 패딩용 0 주입
+                    // 빈 공간 패딩 0 주입
                     bw.Write((long)0);
                 }
 
-                MessageBox.Show("XOR 암호화가 적용된 'custom_test.dat' 파일이 생성되었습니다!\n\n이제 이 파일을 메모장으로 열어보세요. 완전히 깨져있을 겁니다.", "생성 성공");
+                MessageBox.Show("난독화(XOR 암호화)가 완료된 'custom_test.dat' 파일이 정상 생성되었습니다!\n\n이 파일을 메모장으로 열어서 깨진 상태를 먼저 확인해보세요.", "생성 성공");
             }
             catch (Exception ex) 
             { 
@@ -235,7 +234,7 @@ namespace DatAnalyzer
                     {
                         txtFilePath.Text = openFileDialog.FileName;
                         fileBytes = File.ReadAllBytes(openFileDialog.FileName);
-                        MessageBox.Show("데이터 수집 완료: " + fileBytes.Length + " 바이트 로드됨", "성공");
+                        MessageBox.Show("데이터 분석 준비 완료: " + fileBytes.Length + " 바이트 로드됨", "성공");
 
                         btnAnalyzeBinary.Enabled = true;
                         btnAnalyzeEncoding.Enabled = true;
@@ -245,15 +244,16 @@ namespace DatAnalyzer
             }
         }
 
+        // 2. 바이너리 탭 로직: 유령 수치들을 지우고 유효한 숫자 데이터셋만 트래킹
         private void BtnAnalyzeBinary_Click(object sender, EventArgs e)
         {
             if (fileBytes == null) return;
 
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("======================================================================");
-            sb.AppendLine(" [정밀 추출 결과] 앞쪽 깨진 문자열 및 의미없는 패딩 0을 제거한 유효 핵심 숫자 목록");
+            sb.AppendLine(" [바이너리 정제] 비정상적인 유령 마이너스 값 및 빈 공간 패딩 0을 제거한 핵심 결과");
             sb.AppendLine("======================================================================");
-            sb.AppendLine("데이터 주소\t|\t16진수 바이너리 코드\t|\t정제된 실제 데이터");
+            sb.AppendLine("데이터 주소\t|\t16진수 바이너리 코드\t|\t정제된 실제 데이터 값");
             sb.AppendLine("----------------------------------------------------------------------");
 
             int step = 4;
@@ -284,7 +284,7 @@ namespace DatAnalyzer
                 else if (typeChoice == 3) numericValue = BitConverter.ToSingle(fileBytes, i);
                 else if (typeChoice == 4) numericValue = BitConverter.ToDouble(fileBytes, i);
 
-                // 유령 데이터 거르기 필터링 (텍스트 깨짐으로 인한 비정상 음수 및 패딩 0 필터)
+                // 필터링: 난독화나 깨짐 현상 때문에 비정상적으로 튀는 마이너스(-)값 및 의미없는 빈 공간 0 데이터 제외
                 if (numericValue < 0 || numericValue == 0) continue;
 
                 sb.AppendLine(i + "\t\t|\t" + hex.Trim() + "\t|\t" + numericValue);
@@ -293,54 +293,67 @@ namespace DatAnalyzer
 
             if (validCount == 0)
             {
-                sb.AppendLine("\n[필터링 결과 없음] 유효한 데이터를 검출하지 못했습니다.");
-                sb.AppendLine("바이트 선택 단위를 변경하거나 인코딩 교차대조 탭으로 이동하세요.");
+                sb.AppendLine("\n[검출 데이터 없음] 현재 단위로는 유효한 숫자값을 발견하지 못했습니다.");
+                sb.AppendLine("데이터 단위를 변경해가며 다시 시도해보세요.");
             }
 
             txtBinaryResult.Text = sb.ToString();
         }
 
+        // 3. 난독화 파쇄 탭 로직: 0~255 비밀 키 브루트포스 대입 연산으로 진짜 문장을 자동 복원
         private void BtnAnalyzeEncoding_Click(object sender, EventArgs e)
         {
             if (fileBytes == null) return;
 
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("======================================================================");
-            sb.AppendLine(" [5대 인코딩 완전 대조군 분석] 깨진 한자가 원래 문장으로 돌아오는 형식을 확인하세요.");
+            sb.AppendLine(" [난독화 무력화 결과] 0 ~ 255 전체 비밀 복호화 키 무차별 검증 결과");
             sb.AppendLine("======================================================================");
+            sb.AppendLine("※ 수많은 외계어 조합을 연산 필터로 걸러내고, 진짜 텍스트 문장이 검출된 구간만 표시합니다.\n");
 
-            string[] encodingNames = { 
-                "■ 1. UTF-8 (기본 유니코드 표준 인코딩)", 
-                "■ 2. EUC-KR / CP949 (한국어 윈도우 완성형 표준 - 가장 유력)", 
-                "■ 3. UTF-16 Little Endian (일반 유니코드 정규 포맷)", 
-                "■ 4. UTF-16 Big Endian (서버/대형 시스템 통신 규격)", 
-                "■ 5. ASCII (표준 영문 및 공통 제어 기호 영역)" 
-            };
+            int matchCount = 0;
 
-            List<Encoding> encs = new List<Encoding>();
-            encs.Add(Encoding.UTF8);
-            try { encs.Add(Encoding.GetEncoding(949)); } catch { encs.Add(Encoding.GetEncoding("EUC-KR")); }
-            encs.Add(Encoding.Unicode);
-            encs.Add(Encoding.BigEndianUnicode);
-            encs.Add(Encoding.ASCII);
-
-            for (int i = 0; i < encs.Count; i++)
+            // 0부터 255까지 모든 바이트 키값을 순식간에 대입해 연산합니다.
+            for (int key = 0; key <= 255; key++)
             {
-                sb.AppendLine("\n----------------------------------------------------------------------");
-                sb.AppendLine(encodingNames[i]);
-                sb.AppendLine("----------------------------------------------------------------------");
-                
-                string decoded = encs[i].GetString(fileBytes);
-                string cleaned = decoded.Replace("\0", "").Trim();
-                
-                if (string.IsNullOrEmpty(cleaned))
+                byte[] tempBytes = new byte[fileBytes.Length];
+                Array.Copy(fileBytes, tempBytes, fileBytes.Length);
+
+                // 현재 루프의 키값으로 역 XOR 연산 진행
+                for (int i = 0; i < tempBytes.Length; i++)
                 {
-                    sb.AppendLine("[해당 형식으로 텍스트 복원 불가능]");
+                    tempBytes[i] = (byte)(tempBytes[i] ^ key);
                 }
-                else
+
+                // 가장 흔한 윈도우 한국어 인코딩(CP949) 방식으로 문자열 변환 시도
+                string decodedStr = Encoding.GetEncoding(949).GetString(tempBytes).Replace("\0", "").Trim();
+
+                // 가독성 지표 계산 가동 (문자열 내부에 정상적인 한글, 영어, 숫자가 얼마나 포함되어 있는가?)
+                int readabilityScore = 0;
+                foreach (char c in decodedStr)
                 {
-                    sb.AppendLine(cleaned);
+                    if ((c >= 0xAC00 && c <= 0xD7A3) || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == ' ' || c == '[' || c == ']')
+                    {
+                        readabilityScore++;
+                    }
                 }
+
+                // 전체 데이터 중 의미 있는 글자가 6글자 이상 매칭되는 정상 복원 키값만 화면에 추출
+                if (readabilityScore > 6)
+                {
+                    sb.AppendLine("----------------------------------------------------------------------");
+                    sb.AppendLine(string.Format("★ 난독화 무력화 성공 후보 발견!! -> 매칭된 비밀 키(XOR Key): 0x{0:X2} (10진수: {1})", key, key));
+                    sb.AppendLine("----------------------------------------------------------------------");
+                    sb.AppendLine("[해독된 실제 원본 텍스트 데이터]:");
+                    sb.AppendLine(decodedStr);
+                    sb.AppendLine();
+                    matchCount++;
+                }
+            }
+
+            if (matchCount == 0)
+            {
+                sb.AppendLine("\n[분석 실패] 단순 1바이트 XOR 방식의 난독화 파일이 아니거나, 완전히 다른 암호화 기법이 적용된 파일일 수 있습니다.");
             }
 
             txtEncodingResult.Text = sb.ToString();
