@@ -1,4 +1,4 @@
-name: Build DTobserver for Windows 32-bit
+name: Build DTTest for Windows 32-bit
 
 on:
   push:
